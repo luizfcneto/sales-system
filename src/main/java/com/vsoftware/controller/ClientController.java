@@ -7,21 +7,14 @@ import javax.swing.JOptionPane;
 import com.vsoftware.domain.Client;
 import com.vsoftware.service.ClientService;
 import com.vsoftware.service.impl.ClientServiceImpl;
-import com.vsoftware.view.client.ClientOperationCallback;
-import com.vsoftware.view.client.ListClientsView;
 
 public class ClientController {
 	private ClientService clientService;
-    private ClientOperationCallback callback;
-    private ListClientsView listClientsView;
     
     public ClientController() {
         this.clientService = new ClientServiceImpl();
     }
-    
-    public void setListClientsView(ListClientsView listClientsView) {
-        this.listClientsView = listClientsView;
-    }
+
 	
     public void createClient(String name, String creditLimitString, String invoiceClosingDayString) {
     	if(name == null || name.isEmpty()) {
@@ -57,9 +50,6 @@ public class ClientController {
         
         try {
         	clientService.createClient(client);
-        	if (callback != null) {
-                callback.onClientOperationCompleted();
-            }
         	
         } catch (Exception ex) {
         	showErrorMessage("Ocorreu um erro ao tentar cadastrar o cliente: " + client.toString() + " erro: " + ex.getMessage());
@@ -67,7 +57,7 @@ public class ClientController {
         
     }
     
-    public void updateClient(int clientCode, String name, String creditLimitString, String invoiceClosingDayString) {
+    public void updateClient(Integer clientCode, String name, String creditLimitString, String invoiceClosingDayString) {
     	if(clientCode <= 0) {
     		showErrorMessage("Código de cliente inválido");
     		return;
@@ -106,9 +96,6 @@ public class ClientController {
         
         try {
         	clientService.updateClient(client);
-        	if (callback != null) {
-                callback.onClientOperationCompleted();
-            }
         	
         } catch (Exception ex) {
         	showErrorMessage("Ocorreu um erro ao tentar atualizar o cliente: " + client.toString() + " erro: " + ex.getMessage());
@@ -139,14 +126,5 @@ public class ClientController {
     private void showSuccessMessage(String message) {
         JOptionPane.showMessageDialog(null, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
-    
-    public void setClientOperationCallback(ClientOperationCallback callback) {
-        this.callback = callback;
-    }
-    
-    public void updateClientList() {
-        if (listClientsView != null) {
-            listClientsView.updateTableData();
-        }
-    }
+ 
 }
