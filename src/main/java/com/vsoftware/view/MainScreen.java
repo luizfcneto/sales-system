@@ -1,5 +1,9 @@
 package com.vsoftware.view;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.DefaultDesktopManager;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.JInternalFrame;
@@ -10,135 +14,148 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
-import com.vsoftware.controller.ClientController;
 import com.vsoftware.controller.ControllerFactory;
+import com.vsoftware.utils.WindowUtils;
 import com.vsoftware.view.manager.ClientOperationListener;
 import com.vsoftware.view.manager.ClientViewManager;
 
-	public class MainScreen extends JFrame implements ClientOperationListener {
+public class MainScreen extends JFrame implements ClientOperationListener {
+	
+	private static final long serialVersionUID = 1L;
+	private final JDesktopPane desktopPane = new JDesktopPane();
+    private final WindowManager windowManager;
+    private final ClientViewManager clientViewManager;
 
-	    private static final long serialVersionUID = 1L;
-	    private JDesktopPane desktopPane;
-	    private WindowManager windowManager;
-	    private ClientViewManager clientViewManager;
+    public MainScreen() {
+        configureMainFrame();
+        this.windowManager = new WindowManager(desktopPane);
+        this.clientViewManager = createClientViewManager();
+        setupMenuBar();
+        setupDesktopPane();
+    }
 
-	    public MainScreen() {
-	        setTitle("Sistema de Gerenciamento de Vendas");
-	        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	        setSize(800, 600);
+    private void configureMainFrame() {
+        setTitle("Sistema de Gerenciamento de Vendas - VR Software");
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(800, 600);        
+        setLocationRelativeTo(null);
+        setContentPane(desktopPane);
+    }
 
-	        JMenuBar menuBar = new JMenuBar();
-	        setJMenuBar(menuBar);
+    private ClientViewManager createClientViewManager() {
+        ClientViewManager manager = new ClientViewManager(
+            ControllerFactory.createClientController(),
+            windowManager
+        );
+        manager.addClientOperationListener(this);
+        return manager;
+    }
 
-	        JMenu menuClientes = new JMenu("Clientes");
-	        menuBar.add(menuClientes);
+    private void setupMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(createClientMenu());
+        setJMenuBar(menuBar);
+    }
 
-	        desktopPane = new JDesktopPane();
-	        setContentPane(desktopPane);
+    private JMenu createClientMenu() {
+        JMenu menu = new JMenu("Clientes");
+        menu.add(createMenuItem("Listar", this::showClientList));
+        menu.add(createMenuItem("Cadastrar", e -> clientViewManager.showCreate()));
+        menu.addSeparator();
+        menu.add(createMenuItem("Atualizar", this::handleUpdateClient));
+        menu.add(createMenuItem("Excluir", this::handleDeleteClient));
+        return menu;
+    }
 
-	        windowManager = new WindowManager(desktopPane);
+    private JMenuItem createMenuItem(String text, ActionListener listener) {
+        JMenuItem item = new JMenuItem(text);
+        item.addActionListener(listener);
+        return item;
+    }
 
-	        ClientController clientController = ControllerFactory.criarClientController();
-	        clientViewManager = new ClientViewManager(clientController, windowManager);
+    private void setupDesktopPane() {
+        desktopPane.setDesktopManager(new DefaultDesktopManager() {
+            private static final long serialVersionUID = 1L;
 
-	        clientViewManager.addClientOperationListener(this);
+			@Override
+            public void activateFrame(JInternalFrame f) {
+                WindowUtils.centerWindow(f, desktopPane);
+            }
+        });
+    }
 
-	        JMenuItem menuItemListarClientes = new JMenuItem("Listar Clientes");
-	        menuClientes.add(menuItemListarClientes);
-	        menuItemListarClientes.addActionListener(e -> clientViewManager.showList());
+    private void showClientList(ActionEvent e) {
+        JInternalFrame existingWindow = windowManager.findWindowByTitle("Lista de Clientes");
+        if (existingWindow == null) {
+            clientViewManager.showList();
+        } else {
+            existingWindow.toFront();
+        }
+    }
 
-	        JMenuItem menuItemCadastrarCliente = new JMenuItem("Cadastrar Cliente");
-	        menuClientes.add(menuItemCadastrarCliente);
-	        menuItemCadastrarCliente.addActionListener(e -> clientViewManager.showCreate());
+    private void handleUpdateClient(ActionEvent e) {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Clientes");
+        if (listWindow == null || !listWindow.isVisible()) {
+            showErrorMessage("Abra a lista de clientes");
+            return;
+        }
 
-	        JMenuItem menuItemAtualizarCliente = new JMenuItem("Atualizar Cliente");
-	        menuClientes.add(menuItemAtualizarCliente);
-	        menuItemAtualizarCliente.addActionListener(e -> {
-	            JInternalFrame janelaLista = obterJanelaListaClientes();
+        int clientCode = getSelectedClientCode(listWindow);
+        if (clientCode == -1) {
+            showErrorMessage("Nenhum cliente selecionado");
+            return;
+        }
 
-	            if (janelaLista != null) {
-	                JScrollPane scrollPane = (JScrollPane) janelaLista.getContentPane().getComponent(0);
-	                if (scrollPane != null) {
-	                    JTable tabela = (JTable) scrollPane.getViewport().getView();
-	                    if (tabela != null) {
-	                        int linhaSelecionada = tabela.getSelectedRow();
+        clientViewManager.showUpdate(clientCode);
+    }
 
-	                        if (linhaSelecionada != -1) {
-	                            int codigo = (int) tabela.getValueAt(linhaSelecionada, 0);
-	                            clientViewManager.showUpdate(codigo);
-	                        } else {
-	                            mostrarMensagem("Nenhum cliente selecionado.", "Aviso", JOptionPane.WARNING_MESSAGE);
-	                        }
-	                    } else {
-	                        mostrarMensagem("Tabela não encontrada.", "Erro", JOptionPane.ERROR_MESSAGE);
-	                    }
-	                } else {
-	                    mostrarMensagem("Scrollpane não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
-	                }
-	            } else {
-	                mostrarMensagem("Janela de listagem não encontrada.", "Erro", JOptionPane.ERROR_MESSAGE);
-	            }
-	        });
+    private void handleDeleteClient(ActionEvent e) {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Clientes");
+        if (listWindow == null || !listWindow.isVisible()) {
+            showErrorMessage("Abra a lista de clientes");
+            return;
+        }
 
-	        JMenuItem menuItemExcluirCliente = new JMenuItem("Excluir Cliente");
-	        menuClientes.add(menuItemExcluirCliente);
-	        menuItemExcluirCliente.addActionListener(e -> {
-	            JInternalFrame janelaLista = obterJanelaListaClientes();
+        int clientCode = getSelectedClientCode(listWindow);
+        if (clientCode == -1) {
+            showErrorMessage("Nenhum cliente selecionado");
+            return;
+        }
 
-	            if (janelaLista != null) {
-	                JScrollPane scrollPane = (JScrollPane) janelaLista.getContentPane().getComponent(0);
-	                if (scrollPane != null) {
-	                    JTable tabela = (JTable) scrollPane.getViewport().getView();
-	                    if (tabela != null) {
-	                        int linhaSelecionada = tabela.getSelectedRow();
+        clientViewManager.showDelete(clientCode);
+    }
 
-	                        if (linhaSelecionada != -1) {
-	                            int codigo = (int) tabela.getValueAt(linhaSelecionada, 0);
-	                            clientViewManager.showDelete(codigo);
-	                        } else {
-	                            mostrarMensagem("Nenhum cliente selecionado.", "Aviso", JOptionPane.WARNING_MESSAGE);
-	                        }
-	                    } else {
-	                        mostrarMensagem("Tabela não encontrada.", "Erro", JOptionPane.ERROR_MESSAGE);
-	                    }
-	                } else {
-	                    mostrarMensagem("Scrollpane não encontrado.", "Erro", JOptionPane.ERROR_MESSAGE);
-	                }
-	            } else {
-	                mostrarMensagem("Janela de listagem não encontrada.", "Erro", JOptionPane.ERROR_MESSAGE);
-	            }
-	        });
+    private int getSelectedClientCode(JInternalFrame listWindow) {
+        try {
+            JScrollPane scrollPane = (JScrollPane) listWindow.getContentPane().getComponent(0);
+            JTable table = (JTable) scrollPane.getViewport().getView();
+            int selectedRow = table.getSelectedRow();
+            return selectedRow != -1 ? (Integer) table.getValueAt(selectedRow, 0) : -1;
+        } catch (Exception e) {
+            showErrorMessage("Erro ao obter cliente selecionado");
+            return -1;
+        }
+    }
 
-	        setVisible(true);
-	    }
+    @Override
+    public void onClientOperationCompleted() {
+        refreshClientList();
+    }
 
-	    private JInternalFrame obterJanelaListaClientes() {
-	        for (JInternalFrame janela : desktopPane.getAllFrames()) {
-	            if (janela.getTitle().equals("Lista de Clientes")) {
-	                return janela;
-	            }
-	        }
-	        return null;
-	    }
+    private void refreshClientList() {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Clientes");
+        if (listWindow != null) {
+            clientViewManager.updateExistingList(listWindow);
+        }
+    }
 
-	    private void mostrarMensagem(String mensagem, String titulo, int tipo) {
-	        JOptionPane.showMessageDialog(this, mensagem, titulo, tipo);
-	    }
-
-	    @Override
-	    public void onClientOperationCompleted() {
-	        JOptionPane.showMessageDialog(this, "Operacao concluida com sucesso!", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
-
-	        JInternalFrame janelaLista = obterJanelaListaClientes();
-	        if (janelaLista != null) {
-	            JScrollPane scrollPane = (JScrollPane) janelaLista.getContentPane().getComponent(0);
-	            if (scrollPane != null) {
-	                JTable tabela = (JTable) scrollPane.getViewport().getView();
-	                if (tabela != null) {
-	                    clientViewManager.updateTable(tabela);
-	                }
-	            }
-	        }
-	    }
+    private void showErrorMessage(String message) {
+        JOptionPane.showMessageDialog(
+            this,
+            message,
+            "Erro",
+            JOptionPane.ERROR_MESSAGE
+        );
+    }
 
 }

@@ -1,33 +1,23 @@
 package com.vsoftware.view.manager;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.JButton;
 import javax.swing.JInternalFrame;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 
 import com.vsoftware.controller.ClientController;
 import com.vsoftware.domain.Client;
 import com.vsoftware.view.WindowManager;
-import com.vsoftware.view.model.ClientTableModel;
 
 
 public class ClientViewManager {
 
-	private ClientController controller;
-    private WindowManager windowManager;
-    private List<ClientOperationListener> listeners = new ArrayList<>();
+	private final ClientController controller;
+    private final WindowManager windowManager;
+    private final List<ClientOperationListener> listeners = new ArrayList<>();
 
     public ClientViewManager(ClientController controller, WindowManager windowManager) {
         this.controller = controller;
@@ -38,178 +28,104 @@ public class ClientViewManager {
         listeners.add(listener);
     }
 
-    public void removeClientOperationListener(ClientOperationListener listener) {
-        listeners.remove(listener);
-    }
-
     private void fireClientOperationCompleted() {
-        for (ClientOperationListener listener : listeners) {
-            listener.onClientOperationCompleted();
-        }
+        listeners.forEach(ClientOperationListener::onClientOperationCompleted);
     }
 
     public void showList() {
-        try {
-            JInternalFrame window = windowManager.createWindow("Lista de Clientes");
-            window.setLayout(new BorderLayout());
-
-            JTable table = new JTable();
-            updateTable(table);
-
-            JScrollPane scrollPane = new JScrollPane(table);
-            window.add(scrollPane, BorderLayout.CENTER);
-
-            window.setPreferredSize(new Dimension(600, 400));
-            window.pack();
-            windowManager.showWindow(window);
-
-        } catch (Exception e) {
-            System.err.println("Erro ao exibir lista de clientes: " + e.getMessage());
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Erro ao exibir lista de clientes", "Erro", JOptionPane.ERROR_MESSAGE);
-        }
+        JInternalFrame window = windowManager.createWindow("Lista de Clientes");
+        ClientListUI listUI = new ClientListUI(controller.getAllClients());
+        window.add(listUI.getScrollPane());
+        window.pack();
+        windowManager.showWindow(window);
     }
 
-    public void updateTable(JTable tabela) {
-        List<Client> clients = controller.getAllClients();
-        ClientTableModel tableModel = new ClientTableModel(clients);
-        tabela.setModel(tableModel);
+    public void updateExistingList(JInternalFrame listWindow) {
+        JScrollPane scrollPane = (JScrollPane) listWindow.getContentPane().getComponent(0);
+        JTable table = (JTable) scrollPane.getViewport().getView();
+        ClientListUI listUI = new ClientListUI(controller.getAllClients());
+        table.setModel(listUI.getTableModel());
     }
 
     public void showCreate() {
-        try {
-            JInternalFrame window = windowManager.createWindow("Cadastrar Cliente");
-            window.setLayout(new GridLayout(4, 2, 5, 5));
-
-            JTextField txtName = new JTextField(20);
-            JTextField txtCreditLimit = new JTextField(10);
-            JTextField txtInvoiceClosingDay = new JTextField(5);
-
-            JButton btnCreate = new JButton("Cadastrar");
-            btnCreate.setPreferredSize(new Dimension(120, 30));
-
-            window.add(new JLabel("Nome:"));
-            window.add(txtName);
-            window.add(new JLabel("Limite:"));
-            window.add(txtCreditLimit);
-            window.add(new JLabel("Dia Fechamento:"));
-            window.add(txtInvoiceClosingDay);
-            window.add(btnCreate);
-
-            btnCreate.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    String name = txtName.getText();
-                    String creditLimit = txtCreditLimit.getText();
-                    String invoiceClosingDay = txtInvoiceClosingDay.getText();
-
-                    controller.createClient(name, creditLimit, invoiceClosingDay);
-
-                    txtName.setText("");
-                    txtCreditLimit.setText("");
-                    txtInvoiceClosingDay.setText("");
-
-                    fireClientOperationCompleted();
-                    window.dispose();
-                }
-            });
-
-            window.setPreferredSize(new Dimension(400, 300));
-            window.pack();
-            windowManager.showWindow(window);
-
-        } catch (Exception e) {
-            System.err.println("Erro ao exibir tela de cadastro: " + e.getMessage());
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Erro ao exibir tela de cadastro", "Erro", JOptionPane.ERROR_MESSAGE);
-        }
+        JInternalFrame window = windowManager.createWindow("Cadastrar Cliente");
+        ClientFormUI formUI = new ClientFormUI("Cadastrar", null);
+        formUI.addActionListener(e -> handleFormSubmission(window, formUI));
+        window.add(formUI.getFormPanel());
+        window.pack();
+        windowManager.showWindow(window);
     }
 
     public void showUpdate(int code) {
-        try {
-            JInternalFrame window = windowManager.createWindow("Editar Cliente");
-            window.setLayout(new GridLayout(4, 2, 5, 5));
-
-            Client client = controller.getClientByCode(code);
-
-            JTextField txtName = new JTextField(client.getName(), 20);
-            JTextField txtCreditLimit = new JTextField(String.valueOf(client.getCreditLimit()), 10);
-            JTextField txtInvoiceClosingDay = new JTextField(String.valueOf(client.getInvoiceClosingDay()), 5);
-
-            JButton btnUpdate = new JButton("Atualizar");
-            btnUpdate.setPreferredSize(new Dimension(120, 30));
-
-
-            window.add(new JLabel("Nome:"));
-            window.add(txtName);
-            window.add(new JLabel("Limite:"));
-            window.add(txtCreditLimit);
-            window.add(new JLabel("Dia Fechamento:"));
-            window.add(txtInvoiceClosingDay);
-            window.add(btnUpdate);
-
-            btnUpdate.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    String name = txtName.getText();
-                    String creditLimit = txtCreditLimit.getText();
-                    String invoiceClosingDay = txtInvoiceClosingDay.getText();
-
-                    controller.updateClient(client.getCode(), name, creditLimit, invoiceClosingDay);
-
-                    fireClientOperationCompleted();
-                    window.dispose();
-                }
-            });
-
-            window.setPreferredSize(new Dimension(400, 300));
-            window.pack();
-            windowManager.showWindow(window);
-
-        } catch (Exception e) {
-            System.err.println("Erro ao exibir tela de edição: " + e.getMessage());
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Erro ao exibir tela de edição", "Erro", JOptionPane.ERROR_MESSAGE);
-        }
+        Client client = controller.getClientByCode(code);
+        JInternalFrame window = windowManager.createWindow("Editar Cliente - " + code);
+        ClientFormUI formUI = new ClientFormUI("Atualizar", client);
+        formUI.addActionListener(e -> handleUpdateSubmission(window, formUI, client.getCode()));
+        window.add(formUI.getFormPanel());
+        window.pack();
+        windowManager.showWindow(window);
     }
 
     public void showDelete(int code) {
-        try {
-            JInternalFrame window = windowManager.createWindow("Excluir Cliente");
-            window.setLayout(new FlowLayout());
+        JInternalFrame window = windowManager.createWindow("Excluir Cliente");
+        int option = JOptionPane.showConfirmDialog(
+            window,
+            "Deseja realmente excluir o cliente " + code + "?",
+            "Confirmação",
+            JOptionPane.YES_NO_OPTION
+        );
 
-            JLabel message = new JLabel("Deseja realmente excluir o cliente " + code + "?");
-            JButton btnConfirm = new JButton("Confirmar");
-            JButton btnCancel = new JButton("Cancelar");
-
-            window.add(message);
-            window.add(btnConfirm);
-            window.add(btnCancel);
-
-            btnConfirm.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    controller.deleteClient(code);
-                    fireClientOperationCompleted();
-                    window.dispose();
-                }
-            });
-
-            btnCancel.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    window.dispose();
-                }
-            });
-
-            window.setPreferredSize(new Dimension(300, 200));
-            window.pack();
-            windowManager.showWindow(window);
-
-        } catch (Exception e) {
-            System.err.println("Erro ao exibir tela de exclusão: " + e.getMessage());
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Erro ao exibir tela de exclusão", "Erro", JOptionPane.ERROR_MESSAGE);
+        if (option == JOptionPane.YES_OPTION) {
+            try {
+                controller.deleteClient(code);
+                fireClientOperationCompleted();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(
+                    window,
+                    ex.getMessage(),
+                    "Erro",
+                    JOptionPane.ERROR_MESSAGE
+                );
+            }
         }
+        window.dispose();
+    }
+
+    private void handleFormSubmission(JInternalFrame window, ClientFormUI formUI) {
+        try {
+            controller.createClient(
+                formUI.getName(),
+                formUI.getCreditLimit(),
+                formUI.getInvoiceClosingDay()
+            );
+            fireClientOperationCompleted();
+            window.dispose();
+        } catch (Exception ex) {
+            showErrorMessage(window, ex);
+        }
+    }
+
+    private void handleUpdateSubmission(JInternalFrame window, ClientFormUI formUI, int code) {
+        try {
+            controller.updateClient(
+                code,
+                formUI.getName(),
+                formUI.getCreditLimit(),
+                formUI.getInvoiceClosingDay()
+            );
+            fireClientOperationCompleted();
+            window.dispose();
+        } catch (Exception ex) {
+            showErrorMessage(window, ex);
+        }
+    }
+
+    private void showErrorMessage(JInternalFrame window, Exception ex) {
+        JOptionPane.showMessageDialog(
+            window,
+            ex.getMessage(),
+            "Erro na Operação",
+            JOptionPane.ERROR_MESSAGE
+        );
     }
 }

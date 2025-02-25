@@ -2,7 +2,7 @@ package com.vsoftware.domain;
 
 import java.util.Objects;
 
-public class Client {
+public class Client implements Nameable, Codeable{
 	private Integer code;
     private String name;
     private Double creditLimit;

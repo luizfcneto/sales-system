@@ -3,7 +3,6 @@ package com.vsoftware.service.impl;
 import java.util.List;
 
 import com.vsoftware.dao.ClientDAO;
-import com.vsoftware.dao.impl.ClientDAOImpl;
 import com.vsoftware.domain.Client;
 import com.vsoftware.exception.DatabaseException;
 import com.vsoftware.service.ClientService;
@@ -11,8 +10,8 @@ import com.vsoftware.service.ClientService;
 public class ClientServiceImpl implements ClientService {
 	private ClientDAO clientDAO;
 
-    public ClientServiceImpl() {
-        this.clientDAO = new ClientDAOImpl();
+    public ClientServiceImpl(ClientDAO clientDAO) {
+        this.clientDAO = clientDAO;
     }
 	
 	@Override

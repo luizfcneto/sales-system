@@ -2,104 +2,55 @@ package com.vsoftware.controller;
 
 import java.util.List;
 
-import javax.swing.JOptionPane;
-
 import com.vsoftware.domain.Client;
+import com.vsoftware.exception.InvalidClientDataException;
 import com.vsoftware.service.ClientService;
-import com.vsoftware.service.impl.ClientServiceImpl;
+import com.vsoftware.utils.ParseUtils;
+import com.vsoftware.validator.ValidationStrategy;
 
 public class ClientController {
 	private ClientService clientService;
-    
-    public ClientController() {
-        this.clientService = new ClientServiceImpl();
-    }
+    private final ValidationStrategy<Client> createClientValidator;
+    private final ValidationStrategy<Client> updateClientValidator;
+	
+    public ClientController(ClientService clientService, 
+            ValidationStrategy<Client> createValidator, 
+            ValidationStrategy<Client> updateValidator) {
+		this.clientService = clientService;
+		this.createClientValidator = createValidator;
+		this.updateClientValidator = updateValidator;
+	}
 
 	
-    public void createClient(String name, String creditLimitString, String invoiceClosingDayString) {
-    	if(name == null || name.isEmpty()) {
-    		showErrorMessage("Nome não foi preenchido corretamente. Está vazio ou nulo");
-    		return;
-    	}
-    	
-    	double creditLimit;
+    public void createClient(String name, String creditLimitString, String invoiceClosingDayString) {        
         try {
-            creditLimit = Double.parseDouble(creditLimitString);
-            if (creditLimit < 0) {
-                showErrorMessage("Limite de compra deve ser positivo.");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            showErrorMessage("Formato de limite de compra inválido.");
-            return;
-        }
-        
-        int invoiceClosingDay;
-        try {
-            invoiceClosingDay = Integer.parseInt(invoiceClosingDayString);
-            if (invoiceClosingDay < 1 || invoiceClosingDay > 31) {
-                showErrorMessage("Dia de fechamento da fatura inválido. Os dias possíveis são: 1-31");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            showErrorMessage("Dia de fechamento da fatura inválido.");
-            return;
-        }
-        
-        Client client = new Client(name, creditLimit, invoiceClosingDay);
-        
-        try {
-        	clientService.createClient(client);
+        	double creditLimit = ParseUtils.parseDouble(creditLimitString, "Limite de Credito");
+        	int invoiceClosingDay = ParseUtils.parseInt(invoiceClosingDayString, "Dia de Fechamento");
         	
+        	Client client = new Client(name, creditLimit, invoiceClosingDay);
+        	createClientValidator.validate(client);
+        	
+        	clientService.createClient(client);
         } catch (Exception ex) {
-        	showErrorMessage("Ocorreu um erro ao tentar cadastrar o cliente: " + client.toString() + " erro: " + ex.getMessage());
+            throw ex;
         }
         
     }
     
-    public void updateClient(Integer clientCode, String name, String creditLimitString, String invoiceClosingDayString) {
-    	if(clientCode <= 0) {
-    		showErrorMessage("Código de cliente inválido");
-    		return;
-    	}
-    	
-    	if(name == null || name.isEmpty()) {
-    		showErrorMessage("Nome não foi preenchido corretamente. Está vazio ou nulo");
-    		return;
-    	}
-    	
-    	double creditLimit;
+    public void updateClient(Integer clientCode, String name, String creditLimitString, String invoiceClosingDayString) {        
         try {
-            creditLimit = Double.parseDouble(creditLimitString);
-            if (creditLimit < 0) {
-                showErrorMessage("Limite de compra deve ser positivo.");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            showErrorMessage("Formato de limite de compra inválido.");
-            return;
-        }
-        
-        int invoiceClosingDay;
-        try {
-            invoiceClosingDay = Integer.parseInt(invoiceClosingDayString);
-            if (invoiceClosingDay < 1 || invoiceClosingDay > 31) {
-                showErrorMessage("Dia de fechamento da fatura inválido. Os dias possíveis são: 1-31");
-                return;
-            }
-        } catch (NumberFormatException e) {
-            showErrorMessage("Dia de fechamento da fatura inválido.");
-            return;
-        }
-        
-        Client client = new Client(clientCode, name, creditLimit, invoiceClosingDay);
-        
-        try {
-        	clientService.updateClient(client);
+        	double creditLimit = ParseUtils.parseDouble(creditLimitString, "Limite de Credito");
+        	int invoiceClosingDay = ParseUtils.parseInt(invoiceClosingDayString, "Dia de Fechamento");
         	
+        	Client client = new Client(clientCode, name, creditLimit, invoiceClosingDay);
+        	updateClientValidator.validate(client);
+        	
+        	clientService.updateClient(client);
+        
         } catch (Exception ex) {
-        	showErrorMessage("Ocorreu um erro ao tentar atualizar o cliente: " + client.toString() + " erro: " + ex.getMessage());
-        }    	
+            throw ex;
+        }
+          	
     }
     
     public List<Client> getAllClients() {
@@ -111,20 +62,17 @@ public class ClientController {
     }
 
     public void deleteClient(int code) {
-        try {
-            clientService.deleteClient(code);
-            showSuccessMessage("Cliente removido com sucesso.");
-        } catch (Exception e) {
-            showErrorMessage("Erro ao tentar remover o cliente com código " + code + " " + e.getMessage());
-        }
-    }
-    
-    private void showErrorMessage(String message) {
-        JOptionPane.showMessageDialog(null, message, "Error", JOptionPane.ERROR_MESSAGE);
-    }
+    	try {
+            if (code <= 0) {
+                throw new InvalidClientDataException("Codigo de cliente inválido, nao pode ser negativo");
+            }
 
-    private void showSuccessMessage(String message) {
-        JOptionPane.showMessageDialog(null, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+            clientService.deleteClient(code);
+
+        } catch (Exception ex) {
+            throw ex;
+        }
+        
     }
  
 }
