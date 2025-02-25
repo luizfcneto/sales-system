@@ -1,29 +1,161 @@
 package com.vsoftware.view;
 
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.DefaultDesktopManager;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
+import javax.swing.JInternalFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
 
-public class MainScreen extends JFrame {
+import com.vsoftware.controller.ControllerFactory;
+import com.vsoftware.utils.WindowUtils;
+import com.vsoftware.view.manager.ClientOperationListener;
+import com.vsoftware.view.manager.ClientViewManager;
+
+public class MainScreen extends JFrame implements ClientOperationListener {
+	
 	private static final long serialVersionUID = 1L;
-	private JDesktopPane desktopPane;
+	private final JDesktopPane desktopPane = new JDesktopPane();
+    private final WindowManager windowManager;
+    private final ClientViewManager clientViewManager;
 
     public MainScreen() {
-        setTitle("Sistema de Gerenciamento de Vendas");
+        configureMainFrame();
+        this.windowManager = new WindowManager(desktopPane);
+        this.clientViewManager = createClientViewManager();
+        setupMenuBar();
+        setupDesktopPane();
+    }
+
+    private void configureMainFrame() {
+        setTitle("Sistema de Gerenciamento de Vendas - VR Software");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600);
-
-        JMenuBar menuBar = new JMenuBar();
-        setJMenuBar(menuBar);
-
-        JMenu menuCadastro = new JMenu("Cadastro");
-        menuBar.add(menuCadastro);
-
-        desktopPane = new JDesktopPane();
+        setSize(800, 600);        
+        setLocationRelativeTo(null);
         setContentPane(desktopPane);
+    }
 
-        setVisible(true);
+    private ClientViewManager createClientViewManager() {
+        ClientViewManager manager = new ClientViewManager(
+            ControllerFactory.createClientController(),
+            windowManager
+        );
+        manager.addClientOperationListener(this);
+        return manager;
+    }
+
+    private void setupMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        menuBar.add(createClientMenu());
+        setJMenuBar(menuBar);
+    }
+
+    private JMenu createClientMenu() {
+        JMenu menu = new JMenu("Clientes");
+        menu.add(createMenuItem("Listar", this::showClientList));
+        menu.add(createMenuItem("Cadastrar", e -> clientViewManager.showCreate()));
+        menu.addSeparator();
+        menu.add(createMenuItem("Atualizar", this::handleUpdateClient));
+        menu.add(createMenuItem("Excluir", this::handleDeleteClient));
+        return menu;
+    }
+
+    private JMenuItem createMenuItem(String text, ActionListener listener) {
+        JMenuItem item = new JMenuItem(text);
+        item.addActionListener(listener);
+        return item;
+    }
+
+    private void setupDesktopPane() {
+        desktopPane.setDesktopManager(new DefaultDesktopManager() {
+            private static final long serialVersionUID = 1L;
+
+			@Override
+            public void activateFrame(JInternalFrame f) {
+                WindowUtils.centerWindow(f, desktopPane);
+            }
+        });
+    }
+
+    private void showClientList(ActionEvent e) {
+        JInternalFrame existingWindow = windowManager.findWindowByTitle("Lista de Clientes");
+        if (existingWindow == null) {
+            clientViewManager.showList();
+        } else {
+            existingWindow.toFront();
+        }
+    }
+
+    private void handleUpdateClient(ActionEvent e) {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Clientes");
+        if (listWindow == null || !listWindow.isVisible()) {
+            showErrorMessage("Abra a lista de clientes");
+            return;
+        }
+
+        int clientCode = getSelectedClientCode(listWindow);
+        if (clientCode == -1) {
+            showErrorMessage("Nenhum cliente selecionado");
+            return;
+        }
+
+        clientViewManager.showUpdate(clientCode);
+    }
+
+    private void handleDeleteClient(ActionEvent e) {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Clientes");
+        if (listWindow == null || !listWindow.isVisible()) {
+            showErrorMessage("Abra a lista de clientes");
+            return;
+        }
+
+        int clientCode = getSelectedClientCode(listWindow);
+        if (clientCode == -1) {
+            showErrorMessage("Nenhum cliente selecionado");
+            return;
+        }
+
+        clientViewManager.showDelete(clientCode);
+    }
+
+    private int getSelectedClientCode(JInternalFrame listWindow) {
+        try {
+            JScrollPane scrollPane = (JScrollPane) listWindow.getContentPane().getComponent(0);
+            JTable table = (JTable) scrollPane.getViewport().getView();
+            int selectedRow = table.getSelectedRow();
+            return selectedRow != -1 ? (Integer) table.getValueAt(selectedRow, 0) : -1;
+        } catch (Exception e) {
+            showErrorMessage("Erro ao obter cliente selecionado");
+            return -1;
+        }
+    }
+
+    @Override
+    public void onClientOperationCompleted() {
+        refreshClientList();
+    }
+
+    private void refreshClientList() {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Clientes");
+        if (listWindow != null) {
+            clientViewManager.updateExistingList(listWindow);
+        }
+    }
+
+    private void showErrorMessage(String message) {
+        JOptionPane.showMessageDialog(
+            this,
+            message,
+            "Erro",
+            JOptionPane.ERROR_MESSAGE
+        );
     }
 
 }

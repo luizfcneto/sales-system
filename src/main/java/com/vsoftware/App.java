@@ -1,12 +1,9 @@
 package com.vsoftware;
 
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
-import com.vsoftware.config.DbConfig;
+import com.vsoftware.config.DatabaseConnection;
 import com.vsoftware.view.MainScreen;
 
 public class App {
@@ -27,17 +24,7 @@ public class App {
     }
 
     private static boolean testDatabaseConnection() {
-        try {
-            DriverManager.getConnection(
-                DbConfig.getDbUrl(),
-                DbConfig.getDbUser(),
-                DbConfig.getDbPassword()
-            ).close();
-            return true;
-        } catch (SQLException e) {
-            System.out.println(e.getMessage());
-            return false;
-        }
+        return DatabaseConnection.getInstance().test();
     }
 
     private static void showError(String message) {
