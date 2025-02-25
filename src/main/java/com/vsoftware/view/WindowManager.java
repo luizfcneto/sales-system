@@ -21,10 +21,10 @@ public class WindowManager {
     public JInternalFrame createWindow(String title) {
         JInternalFrame window = new JInternalFrame(
             title,
-            true,  // resizable
-            true,  // closable
-            true,  // maximizable
-            true   // iconifiable
+            true, 
+            true, 
+            true, 
+            true  
         );
         
         configureWindow(window);
