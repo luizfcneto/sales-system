@@ -1,5 +1,6 @@
 package com.vsoftware.service.impl;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import com.vsoftware.dao.ClientDAO;
@@ -44,8 +45,12 @@ public class ClientServiceImpl implements ClientService {
 	@Override
 	public Client getClientByCode(int code) {
 		try {
-            return clientDAO.getClientByCode(code);
-        } catch (DatabaseException e) {
+			Client client = clientDAO.getClientByCode(code);
+			if (client == null) {
+                throw new IllegalArgumentException("Cliente não encontrado.");
+            }
+			return client;
+        } catch (IllegalArgumentException | DatabaseException e) {
             throw e;
         }
 	}
@@ -57,6 +62,15 @@ public class ClientServiceImpl implements ClientService {
         } catch (DatabaseException e) {
             throw e;
         }		
+	}
+
+	@Override
+	public double getTotalSpentSince(Client client, LocalDate date) {
+		try {
+            return clientDAO.getTotalSpentSince(client, date);
+        } catch (DatabaseException e) {
+            throw e;
+        }
 	}
 
 }

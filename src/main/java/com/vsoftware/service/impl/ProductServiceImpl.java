@@ -27,8 +27,12 @@ public class ProductServiceImpl implements ProductService {
 	@Override
 	public Product getProductByCode(int code) {
 		try {
-            return productDAO.getProductByCode(code);
-        } catch (DatabaseException e) {
+			Product product = productDAO.getProductByCode(code);
+			if (product == null) {
+                throw new IllegalArgumentException("Produto não encontrado.");
+            }
+			return product;
+        } catch (IllegalArgumentException | DatabaseException e) {
             throw e;
         }
 	}

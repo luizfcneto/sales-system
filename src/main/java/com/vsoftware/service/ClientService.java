@@ -1,5 +1,6 @@
 package com.vsoftware.service;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import com.vsoftware.domain.Client;
@@ -10,5 +11,6 @@ public interface ClientService {
 	public List<Client> getAllClients();
 	public Client getClientByCode(int code);
 	public void deleteClient(int code);
+	double getTotalSpentSince(Client client, LocalDate date);
 	
 }
