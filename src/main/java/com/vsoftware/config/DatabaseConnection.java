@@ -7,8 +7,8 @@ import java.sql.SQLException;
 public class DatabaseConnection {
 
     private static DatabaseConnection instance;
-    private Connection connection;
-
+    public Connection connection;
+ 
     private DatabaseConnection() {
         try {
             connection = DriverManager.getConnection(
@@ -17,10 +17,11 @@ public class DatabaseConnection {
                     DbConfig.getDbPassword()
             );
         } catch (SQLException e) {
+        	System.out.println(e.getMessage());
             throw new RuntimeException("Erro ao conectar com o banco de dados: " + e.getMessage(), e);
         }
     }
-
+ 
     public static DatabaseConnection getInstance() {
         if (instance == null) {
             instance = new DatabaseConnection();
@@ -30,7 +31,7 @@ public class DatabaseConnection {
 
     public Connection getConnection() {
         return connection;
-    }
+    } 
 
     public boolean test() {
         try {
