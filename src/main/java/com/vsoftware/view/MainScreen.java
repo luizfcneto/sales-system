@@ -18,22 +18,26 @@ import com.vsoftware.controller.ControllerFactory;
 import com.vsoftware.utils.WindowUtils;
 import com.vsoftware.view.manager.ClientOperationListener;
 import com.vsoftware.view.manager.ClientViewManager;
+import com.vsoftware.view.manager.ProductOperationListener;
+import com.vsoftware.view.manager.ProductViewManager;
 
-public class MainScreen extends JFrame implements ClientOperationListener {
+public class MainScreen extends JFrame implements ClientOperationListener, ProductOperationListener {
 	
 	private static final long serialVersionUID = 1L;
 	private final JDesktopPane desktopPane = new JDesktopPane();
     private final WindowManager windowManager;
     private final ClientViewManager clientViewManager;
+    private final ProductViewManager productViewManager;
 
     public MainScreen() {
         configureMainFrame();
         this.windowManager = new WindowManager(desktopPane);
         this.clientViewManager = createClientViewManager();
+        this.productViewManager = createProductViewManager();
         setupMenuBar();
         setupDesktopPane();
     }
-
+ 
     private void configureMainFrame() {
         setTitle("Sistema de Gerenciamento de Vendas - VR Software");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -50,10 +54,20 @@ public class MainScreen extends JFrame implements ClientOperationListener {
         manager.addClientOperationListener(this);
         return manager;
     }
+    
+    private ProductViewManager createProductViewManager() {
+    	ProductViewManager manager = new ProductViewManager(
+			ControllerFactory.createProductController(), 
+			windowManager
+		);
+    	manager.addProductOperationListener(this);
+    	return manager;
+    }
 
     private void setupMenuBar() {
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(createClientMenu());
+        menuBar.add(createProductMenu());
         setJMenuBar(menuBar);
     }
 
@@ -64,6 +78,16 @@ public class MainScreen extends JFrame implements ClientOperationListener {
         menu.addSeparator();
         menu.add(createMenuItem("Atualizar", this::handleUpdateClient));
         menu.add(createMenuItem("Excluir", this::handleDeleteClient));
+        return menu;
+    }
+    
+    private JMenu createProductMenu() {
+        JMenu menu = new JMenu("Produtos");
+        menu.add(createMenuItem("Listar", this::showProductList)); 
+        menu.add(createMenuItem("Cadastrar", e -> productViewManager.showCreate()));
+        menu.addSeparator();
+        menu.add(createMenuItem("Atualizar", this::handleUpdateProduct));
+        menu.add(createMenuItem("Excluir", this::handleDeleteProduct));
         return menu;
     }
 
@@ -136,6 +160,59 @@ public class MainScreen extends JFrame implements ClientOperationListener {
             return -1;
         }
     }
+    
+    private void showProductList(ActionEvent e) {
+    	JInternalFrame existingWindow = windowManager.findWindowByTitle("Lista de Produtos");
+        if (existingWindow == null) {
+            productViewManager.showList();
+        } else {
+            existingWindow.toFront();
+        }
+    }
+
+    private void handleUpdateProduct(ActionEvent e) {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Produtos");
+        if (listWindow == null || !listWindow.isVisible()) {
+            showErrorMessage("Abra a lista de produtos");
+            return;
+        }
+
+        int productCode = getSelectedProductCode(listWindow);
+        if (productCode == -1) {
+            showErrorMessage("Nenhum produto selecionado");
+            return;
+        }
+
+        productViewManager.showUpdate(productCode);
+    }
+
+    private void handleDeleteProduct(ActionEvent e) {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Produtos");
+        if (listWindow == null || !listWindow.isVisible()) {
+            showErrorMessage("Abra a lista de produtos");
+            return;
+        }
+
+        int productCode = getSelectedProductCode(listWindow);
+        if (productCode == -1) {
+            showErrorMessage("Nenhum produto selecionado");
+            return;
+        }
+
+        productViewManager.showDelete(productCode);
+    }
+    
+    private int getSelectedProductCode(JInternalFrame listWindow) {
+        try {
+            JScrollPane scrollPane = (JScrollPane) listWindow.getContentPane().getComponent(0);
+            JTable table = (JTable) scrollPane.getViewport().getView();
+            int selectedRow = table.getSelectedRow();
+            return selectedRow != -1 ? (Integer) table.getValueAt(selectedRow, 0) : -1;
+        } catch (Exception e) {
+            showErrorMessage("Erro ao obter produto selecionado");
+            return -1;
+        }
+    }
 
     @Override
     public void onClientOperationCompleted() {
@@ -156,6 +233,18 @@ public class MainScreen extends JFrame implements ClientOperationListener {
             "Erro",
             JOptionPane.ERROR_MESSAGE
         );
+    }
+
+    @Override
+    public void onProductOperationCompleted() {
+        refreshProductList();
+    }
+
+    private void refreshProductList() {
+        JInternalFrame listWindow = windowManager.findWindowByTitle("Lista de Produtos");
+        if (listWindow != null) {
+            productViewManager.updateExistingList(listWindow);
+        }
     }
 
 }

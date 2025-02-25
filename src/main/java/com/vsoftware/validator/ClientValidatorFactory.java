@@ -8,7 +8,7 @@ import com.vsoftware.validator.impl.ClientCreditLimitValidation;
 import com.vsoftware.validator.impl.ClientInvoiceClosingDayValidation;
 import com.vsoftware.validator.impl.NameValidation;
 
-public class ValidatorFactory {
+public class ClientValidatorFactory {
 	public static ValidationStrategy<Client> createValidator() {
         return new CompositeValidator<>(Arrays.asList(
             new NameValidation<>(),
@@ -25,4 +25,5 @@ public class ValidatorFactory {
             new ClientInvoiceClosingDayValidation()
         ));
     }
+    
 }
