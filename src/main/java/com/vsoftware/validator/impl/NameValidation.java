@@ -8,7 +8,7 @@ public class NameValidation<T extends Nameable> implements ValidationStrategy<T>
 
 	@Override
 	public void validate(T entity) {
-		if (entity.getName() == null || entity.getName().isEmpty()) {
+		if (entity.getName() == null || entity.getName().trim().isEmpty()) {
             throw new InvalidClientDataException("Erro: Nome invalido, nao pode ser vazio.");
         }
 	}

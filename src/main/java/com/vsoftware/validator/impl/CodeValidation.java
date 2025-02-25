@@ -8,7 +8,7 @@ public class CodeValidation<T extends Codeable> implements ValidationStrategy<T>
 
 	@Override
 	public void validate(T entity) {
-		if (entity.getCode() <= 0) {
+		if (entity.getCode() == null || entity.getCode() <= 0) {
 			throw new InvalidClientDataException("Erro: Codigo do cliente invalido, nao pode ser negativo");
 		}
 	}
