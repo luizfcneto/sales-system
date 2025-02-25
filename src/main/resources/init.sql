@@ -8,7 +8,7 @@ CREATE TABLE Clients (
 CREATE TABLE Products (
     code SERIAL PRIMARY KEY,
     description VARCHAR(255) NOT NULL,
-    "value" DECIMAL(10, 2)
+    price DECIMAL(10, 2)
 );
 
 CREATE TABLE Sales (

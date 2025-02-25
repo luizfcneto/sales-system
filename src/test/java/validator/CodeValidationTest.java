@@ -10,7 +10,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.vsoftware.domain.Codeable;
-import com.vsoftware.exception.InvalidClientDataException;
+import com.vsoftware.exception.InvalidDataException;
 import com.vsoftware.validator.impl.CodeValidation;
 
 public class CodeValidationTest {
@@ -36,14 +36,14 @@ public class CodeValidationTest {
     @DisplayName("Validar código - código zero")
     void testValidarCodigoZero() {
         when(entity.getCode()).thenReturn(0);
-        assertThrows(InvalidClientDataException.class, () -> codeValidation.validate(entity));
+        assertThrows(InvalidDataException.class, () -> codeValidation.validate(entity));
     }
 
     @Test
     @DisplayName("Validar código - código negativo")
     void testValidarCodigoNegativo() {
         when(entity.getCode()).thenReturn(-1);
-        assertThrows(InvalidClientDataException.class, () -> codeValidation.validate(entity));
+        assertThrows(InvalidDataException.class, () -> codeValidation.validate(entity));
     }
 
     @Test
@@ -64,6 +64,6 @@ public class CodeValidationTest {
     @DisplayName("Validar código - codigo nulo")
     void testValidarCodigoNulo() {
         when(entity.getCode()).thenReturn(null);
-        assertThrows(InvalidClientDataException.class, () -> codeValidation.validate(entity));
+        assertThrows(InvalidDataException.class, () -> codeValidation.validate(entity));
     }
 }
