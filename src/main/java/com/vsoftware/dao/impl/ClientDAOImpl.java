@@ -1,9 +1,12 @@
 package com.vsoftware.dao.impl;
 
+import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -101,6 +104,26 @@ public class ClientDAOImpl implements ClientDAO {
     		resultSet.getInt("invoice_closing_day")
 		);
     }
+
+	@Override
+	public double getTotalSpentSince(Client client, LocalDate date) {
+		sql = "SELECT COALESCE(SUM(s.total_value), 0) FROM sales s WHERE s.client_code = ? AND s.sale_date >= ?";
+        try (Connection conn = DatabaseConnection.getInstance().getConnection(); 
+             PreparedStatement statement = conn.prepareStatement(sql)) {
+
+            statement.setInt(1, client.getCode());
+            statement.setDate(2, Date.valueOf(date));
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getDouble(1);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Erro ao obter total gasto desde a data" + e.getMessage());
+        }
+        return 0.0;
+	}
 
 	
 

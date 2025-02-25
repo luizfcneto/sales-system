@@ -1,5 +1,6 @@
 package com.vsoftware.dao;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import com.vsoftware.domain.Client;
@@ -11,5 +12,6 @@ public interface ClientDAO {
 	public List<Client> getAll();
 	public Client getClientByCode(int code);
 	public void delete(int code);
+	public double getTotalSpentSince(Client client, LocalDate date);
 	
 }
